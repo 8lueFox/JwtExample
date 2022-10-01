@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace API.Controllers;
 
@@ -54,7 +55,7 @@ public class AuthController : ControllerBase
         using(var hmac = new HMACSHA512())
         {
             passwordSalt = hmac.Key;
-            passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+            passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
         }
     }
 
@@ -62,7 +63,7 @@ public class AuthController : ControllerBase
     {
         using (var hmac = new HMACSHA512(passwordSalt))
         {
-            var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
             return computedHash.SequenceEqual(passwordHash);
         }
     }
@@ -71,10 +72,11 @@ public class AuthController : ControllerBase
     {
         List<Claim> claims = new List<Claim>
         {
-            new Claim(ClaimTypes.Name, user.UserName)
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.Role, "Admin"),
         };
 
-        var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value));
 
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
 
