@@ -13,7 +13,6 @@ namespace API.Controllers;
 [ApiController]
 public class AuthController : ControllerBase
 {
-    private static User user = new();
     private readonly IConfiguration _configuration;
     private readonly IUserService _userService;
 
@@ -27,6 +26,7 @@ public class AuthController : ControllerBase
     public ActionResult<string> GetMe()
     {
         var userName = _userService.GetMyName();
+
         return Ok(userName);
     }
 
@@ -35,9 +35,14 @@ public class AuthController : ControllerBase
     {
         CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
-        user.UserName = request.UserName;
-        user.PasswordHash = passwordHash;
-        user.PasswordSalt = passwordSalt;
+        var user = new User
+        {
+            UserName = request.UserName,
+            PasswordHash = passwordHash,
+            PasswordSalt = passwordSalt
+        };
+
+        _userService.CreateUser(user);
 
         return Ok(user);
     }
@@ -45,12 +50,13 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<string>> Login(UserDto request)
     {
-        if (user.UserName != request.UserName)
+        var user = _userService.GetUser(request.UserName).Result;
+        if (user?.UserName != request.UserName)
         {
             return BadRequest("User Not Found.");
         }
 
-        if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
+        if (!VerifyPasswordHash(request.Password, user?.PasswordHash, user?.PasswordSalt))
         {
             return BadRequest("Wrong Password.");
         }
@@ -67,6 +73,7 @@ public class AuthController : ControllerBase
     [HttpPost("refresh-token")]
     public async Task<ActionResult<string>> RefreshToken()
     {
+        var user = _userService.GetUser(_userService.GetMyName()).Result;
         var refreshToken = Request.Cookies["RefreshToken"];
 
         if (!user.RefreshToken.Equals(refreshToken))
@@ -143,8 +150,8 @@ public class AuthController : ControllerBase
 
         Response.Cookies.Append("refreshToken", newRefreshToken.Token, cookieOptions);
 
-        user.RefreshToken = newRefreshToken.Token;
-        user.TokenCreated = newRefreshToken.Created;
-        user.TokenExpires = newRefreshToken.Expires;
+        //user.RefreshToken = newRefreshToken.Token;
+        //user.TokenCreated = newRefreshToken.Created;
+        //user.TokenExpires = newRefreshToken.Expires;
     }
 }
