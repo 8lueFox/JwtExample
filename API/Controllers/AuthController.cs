@@ -22,7 +22,7 @@ public class AuthController : ControllerBase
         _userService = userService;
     }
 
-    [HttpGet, Authorize]
+    [HttpGet, Authorize(AuthenticationSchemes = "Bearer")]
     public ActionResult<string> GetMe()
     {
         var userName = _userService.GetMyName();
